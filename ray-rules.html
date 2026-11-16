@@ -51,7 +51,7 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}
 </style></head><body>
 <div class="wrap">
   <header>
-    <div><h1>Ray rules</h1><p class="sub">Three easy rays tell us where every lens image is. Drag the object and switch each rule on.</p></div>
+    <div><h1>Ray rules</h1><p class="sub">Three easy rays tell us where every lens image is. Tap a rule to see its ray, then drag the object.</p></div>
     <div class="controls">
       <div class="seg" role="group" aria-label="Lens"><button id="lc" aria-pressed="true">Convex lens</button><button id="lv" aria-pressed="false">Concave lens</button></div>
       <div class="seg" role="group" aria-label="Mode"><button id="mx" aria-pressed="true">Learn</button><button id="mq" aria-pressed="false">Quiz</button></div>
@@ -59,7 +59,7 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}
   </header>
   <div class="bench">
     <svg id="sv" viewBox="0 0 1000 420" aria-label="Lens with an object and the three ray rules"></svg>
-    <div class="hint" id="hint">Drag the purple object. Tap a rule card to show or hide its ray.</div>
+    <div class="hint" id="hint">Tap a rule to see its ray (one ray at a time). Drag the purple object.</div>
   </div>
   <div class="rules" id="rules"></div>
   <div class="quiz" id="quiz" hidden>
@@ -74,7 +74,7 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}
 (function(){
 const NS="http://www.w3.org/2000/svg",sv=document.getElementById("sv");
 const CX=500,AY=220,F=150,HO=90,XMIN=20,XMAX=980;
-let lens="convex",mode="learn",xo=CX-2.4*F,on=[true,true,true],drag=false;
+let lens="convex",mode="learn",xo=CX-2.4*F,on=[false,false,false],drag=false;
 const QS=new URLSearchParams(location.search);const I=Object.assign({},window.INIT||{});
 if(QS.get("lens"))I.lens=QS.get("lens"); if(QS.get("x"))I.x=parseFloat(QS.get("x")); if(QS.get("mode"))I.mode=QS.get("mode");
 if(QS.get("embed")){document.documentElement.classList.add("embed")} if(I.lens)lens=I.lens;
@@ -135,8 +135,8 @@ sv.addEventListener("pointerup",()=>drag=false);
 function renderRules(){
   const box=document.getElementById("rules");box.innerHTML="";
   RULES[lens].forEach((r,i)=>{const b=document.createElement("button");b.className="rule";b.style.setProperty("--c",css(r.c));
-    b.setAttribute("aria-pressed",on[i]);b.innerHTML=`<b>${r.t}</b><span>${r.d}</span><small>${on[i]?"Shown":"Hidden"} · tap to ${on[i]?"hide":"show"}</small>`;
-    b.onclick=()=>{on[i]=!on[i];renderRules();draw()};box.appendChild(b)});
+    b.setAttribute("aria-pressed",on[i]);b.innerHTML=`<b>${r.t}</b><span>${r.d}</span><small>${on[i]?"Showing this ray":"Tap to show this ray"}</small>`;
+    b.onclick=()=>{const was=on[i];on=[false,false,false];on[i]=!was;renderRules();draw()};box.appendChild(b)});
 }
 
 // QUIZ: show incoming part; offer 3 outgoing options A/B/C, one correct
@@ -182,7 +182,7 @@ document.getElementById("lc").onclick=()=>{setLensUI("convex");mode==="quiz"?new
 document.getElementById("lv").onclick=()=>{setLensUI("concave");mode==="quiz"?newQ():draw()};
 function setMode(m){mode=m;document.getElementById("mx").setAttribute("aria-pressed",m==="learn");document.getElementById("mq").setAttribute("aria-pressed",m==="quiz");
   document.getElementById("rules").hidden=m!=="learn";document.getElementById("quiz").hidden=m!=="quiz";
-  document.getElementById("hint").textContent=m==="learn"?"Drag the purple object. Tap a rule card to show or hide its ray.":"Look at the coloured ray going in. Pick the path it takes after the lens.";
+  document.getElementById("hint").textContent=m==="learn"?"Tap a rule to see its ray (one ray at a time). Drag the purple object.":"Look at the coloured ray going in. Pick the path it takes after the lens.";
   if(m==="quiz"){qn=1;score=0;newQ()}else draw()}
 document.getElementById("mx").onclick=()=>setMode("learn");
 document.getElementById("mq").onclick=()=>setMode("quiz");
