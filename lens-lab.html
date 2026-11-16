@@ -1,0 +1,323 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where Is the Image? Lens Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+
+
+<style>
+/* Layout: optical bench across the top (the experiment), readout + missions beneath, stacked on phones */
+:root{
+  --bg:#f3f6f8; --panel:#ffffff; --ink:#13293d; --muted:#5b6f80; --line:#cfd9e1;
+  --accent:#0b7a8a; --obj:#6a2fa0; --img:#d9480f; --ray1:#c92a2a; --ray2:#1c7ed6; --ray3:#2b8a3e;
+  --glass:#bfe3f2; --glass-edge:#3d8fb8; --ok:#2b8a3e; --warn:#c77700; --chip:#e7eef3;
+  --display:"Sora",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1a24; --panel:#152532; --ink:#e6eef4; --muted:#9db0bf; --line:#2a3f50;
+  --accent:#3cc2d3; --obj:#c49cf0; --img:#ff8a4c; --ray1:#ff6b6b; --ray2:#5aa9ff; --ray3:#5fd17a;
+  --glass:#244a5e; --glass-edge:#6cc0e6; --ok:#5fd17a; --warn:#ffb347; --chip:#1d3242; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1a24; --panel:#152532; --ink:#e6eef4; --muted:#9db0bf; --line:#2a3f50;
+  --accent:#3cc2d3; --obj:#c49cf0; --img:#ff8a4c; --ray1:#ff6b6b; --ray2:#5aa9ff; --ray3:#5fd17a;
+  --glass:#244a5e; --glass-edge:#6cc0e6; --ok:#5fd17a; --warn:#ffb347; --chip:#1d3242; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+.embed .mission,.embed .sub,.embed .hint,.embed .legend{display:none}
+.embed body,html.embed body{padding-block:6px 6px}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 32px}
+.wrap{max-width:1100px;margin:0 auto;display:grid;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-size:clamp(1.35rem,2.6vw,1.9rem);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:2px 0 0}
+.controls{display:flex;flex-wrap:wrap;gap:8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:transparent;color:var(--ink);font:600 .9rem var(--body);padding:8px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.seg button:focus-visible,.btn:focus-visible,.pos:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;overflow:hidden}
+svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}
+.hint{font-size:.85rem;color:var(--muted);padding:2px 8px 6px}
+.grid{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.card h2{font-family:var(--display);font-size:1rem;margin:0 0 8px;letter-spacing:.01em}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.big{font-family:var(--display);font-size:1.15rem;font-weight:700;margin:2px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--chip);border-radius:999px;padding:4px 12px;font-weight:600;font-size:.9rem}
+.chip.real{color:var(--ray3)} .chip.virtual{color:var(--img)}
+.nums{font-family:var(--mono);font-size:.85rem;color:var(--muted);margin-top:10px;font-variant-numeric:tabular-nums}
+.posrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pos{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:6px 10px;font:500 .85rem var(--body);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.pos .tick{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);display:inline-block;flex:none}
+.pos.done .tick{background:var(--ok);border-color:var(--ok)}
+.btn{border:0;background:var(--accent);color:#fff;font:600 .95rem var(--body);padding:9px 16px;border-radius:10px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.feedback{margin-top:10px;font-weight:600;min-height:1.5em}
+.feedback.ok{color:var(--ok)} .feedback.no{color:var(--warn)}
+.steps{margin:0;padding-left:1.2em;color:var(--ink)} .steps li{margin:2px 0}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.82rem;color:var(--muted);padding:0 8px 4px}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+.score{font-family:var(--mono);font-weight:500}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Where is the image?</h1>
+      <p class="sub">Drag the object along the bench. Find where the lens makes its image.</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Lens">
+        <button id="lens-convex" aria-pressed="true">Convex lens</button>
+        <button id="lens-concave" aria-pressed="false">Concave lens</button>
+      </div>
+      <div class="seg" role="group" aria-label="Mode">
+        <button id="mode-explore" aria-pressed="true">Explore</button>
+        <button id="mode-predict" aria-pressed="false">Predict</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="bench">
+    <svg id="sv" viewBox="0 0 1000 440" aria-label="Optical bench with a lens, an object and its image"></svg>
+    <div class="legend" id="legend">
+      <span><i style="background:var(--ray1)"></i>Ray 1: parallel, then through F</span>
+      <span><i style="background:var(--ray3)"></i>Ray 2: through the centre, straight on</span>
+    </div>
+    <div class="hint" id="hint">Drag the purple object. Dashed lines are traced back: they show a virtual image.</div>
+  </div>
+
+  <div class="grid">
+    <section class="card" aria-live="polite">
+      <h2>What the lens does</h2>
+      <div class="label">Object is</div>
+      <div class="big" id="objZone">Beyond 2F</div>
+      <div class="label">Image is</div>
+      <div class="big" id="imgZone">Between F and 2F, on the other side</div>
+      <div class="chips" id="chips"></div>
+      <div class="nums" id="nums"></div>
+      <div class="feedback" id="fb"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="predictBtns" hidden>
+        <button class="btn" id="check" disabled>Check my image</button>
+        <button class="btn ghost" id="again">Try again</button>
+      </div>
+    </section>
+
+    <section class="card mission">
+      <h2>Mission: find all 6 images <span class="score" id="score">0 / 6</span></h2>
+      <p style="margin:0 0 6px;color:var(--muted)">Jump the object to each position (or drag it there). A position turns green when you have found its image. Write each answer in your foldable.</p>
+      <div class="posrow" id="posrow"></div>
+      <h2 style="margin-top:14px">Predict mode</h2>
+      <ol class="steps">
+        <li>Choose <b>Predict</b>. The rays and the image are hidden.</li>
+        <li>Put the object where you want it.</li>
+        <li>Tap the bench where you think the image will be.</li>
+        <li>Press <b>Check my image</b>.</li>
+      </ol>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+const NS="http://www.w3.org/2000/svg", sv=document.getElementById("sv");
+const W=1000,H=440,CX=500,AY=230,F=140,HO=80;          // lens centre, axis y, focal length (px), object height
+const XMIN=30,XMAX=970;
+let lens="convex", mode="explore", xo=CX-2.8*F, guess=null, checked=false;
+const QS=new URLSearchParams(location.search);const I=Object.assign({},window.INIT||{});
+if(QS.get("lens"))I.lens=QS.get("lens"); if(QS.get("x"))I.x=parseFloat(QS.get("x")); if(QS.get("mode"))I.mode=QS.get("mode");
+if(QS.get("embed")){document.documentElement.classList.add("embed")} if(I.lens)lens=I.lens; if(I.x!=null)xo=CX-I.x*F;
+const found=new Set();
+const POS=[
+ {k:"beyond",t:"Beyond 2F",x:CX-2.8*F,l:"convex"},
+ {k:"at2f",t:"At 2F",x:CX-2*F,l:"convex"},
+ {k:"between",t:"Between 2F and F",x:CX-1.5*F,l:"convex"},
+ {k:"atf",t:"At F",x:CX-F,l:"convex"},
+ {k:"inside",t:"Inside F",x:CX-0.5*F,l:"convex"},
+ {k:"concave",t:"Concave lens",x:CX-1.6*F,l:"concave"}];
+
+function el(n,a,p){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);(p||sv).appendChild(e);return e}
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+
+function optics(){
+  const d=CX-xo;                                   // object distance (px, positive)
+  if(lens==="convex"){
+    if(Math.abs(d-F)<4) return {none:true,d};
+    const di=1/(1/F-1/d);                          // + real (right), - virtual (left)
+    return {d,di,m:-di/d};
+  }
+  const di=-1/(1/F+1/d);
+  return {d,di,m:-di/d};
+}
+
+function zoneObj(d){
+  if(lens==="concave") return "In front of a concave lens";
+  if(Math.abs(d-F)<4) return "At F";
+  if(Math.abs(d-2*F)<4) return "At 2F";
+  if(d>2*F) return "Beyond 2F";
+  if(d>F) return "Between 2F and F";
+  return "Inside F (between F and the lens)";
+}
+function zoneKey(d){
+  if(lens==="concave") return "concave";
+  if(Math.abs(d-F)<4) return "atf";
+  if(Math.abs(d-2*F)<4) return "at2f";
+  if(d>2*F) return "beyond"; if(d>F) return "between"; return "inside";
+}
+function zoneImg(o){
+  if(o.none) return "No image: the rays come out parallel";
+  if(lens==="concave") return "Between F and the lens, on the same side as the object";
+  const di=o.di;
+  if(di<0) return "On the same side as the object, behind it";
+  if(Math.abs(di-2*F)<6) return "At 2F on the other side";
+  if(di>2*F) return "Beyond 2F on the other side";
+  return "Between F and 2F on the other side";
+}
+
+function draw(){
+  sv.innerHTML="";
+  const ink=css("--ink"),muted=css("--muted"),line=css("--line");
+  // grid ticks every F/2
+  for(let x=CX-3*F;x<=CX+3*F+1;x+=F/2) el("line",{x1:x,y1:AY-4,x2:x,y2:AY+4,stroke:muted,"stroke-width":1});
+  el("line",{x1:XMIN-10,y1:AY,x2:XMAX+10,y2:AY,stroke:ink,"stroke-width":1.6});
+  [[-2,"2F"],[-1,"F"],[1,"F"],[2,"2F"]].forEach(([k,t])=>{
+    const x=CX+k*F; el("circle",{cx:x,cy:AY,r:5,fill:ink});
+    const tx=el("text",{x:x,y:AY+28,"text-anchor":"middle","font-family":"Sora, sans-serif","font-weight":700,"font-size":18,fill:ink}); tx.textContent=t;
+  });
+  // lens
+  if(lens==="convex"){
+    el("ellipse",{cx:CX,cy:AY,rx:16,ry:170,fill:css("--glass"),stroke:css("--glass-edge"),"stroke-width":2});
+  }else{
+    el("path",{d:`M${CX-20} ${AY-170} L${CX+20} ${AY-170} Q${CX+4} ${AY} ${CX+20} ${AY+170} L${CX-20} ${AY+170} Q${CX-4} ${AY} ${CX-20} ${AY-170} Z`,fill:css("--glass"),stroke:css("--glass-edge"),"stroke-width":2});
+  }
+  const lt=el("text",{x:CX,y:AY+200,"text-anchor":"middle","font-size":14,fill:muted}); lt.textContent=lens==="convex"?"convex (converging) lens":"concave (diverging) lens";
+
+  const o=optics(); const top=AY-HO;
+  const showRays = mode==="explore" || checked;
+  if(showRays) rays(o);
+  // object
+  arrow(xo,AY,top,css("--obj"),false,"object",true);
+  // image
+  if(showRays && !o.none){
+    const xi=CX+o.di, hi=HO*o.m, ytop=AY-hi;
+    if(xi>XMIN-40 && xi<XMAX+40 && Math.abs(hi)<210) arrow(xi,AY,ytop,css("--img"),o.di<0,"image",false);
+    else { const t=el("text",{x:o.di>0?XMAX-6:XMIN+6,y:60,"text-anchor":o.di>0?"end":"start","font-size":15,fill:css("--img"),"font-weight":600}); t.textContent="image is very far away →".replace("→",o.di>0?"→":"←"); }
+  }
+  // guess marker
+  if(mode==="predict" && guess!==null){
+    el("line",{x1:guess,y1:AY-190,x2:guess,y2:AY+190,stroke:css("--accent"),"stroke-width":3,"stroke-dasharray":"6 6"});
+    const g=el("text",{x:guess,y:AY-198,"text-anchor":"middle","font-size":15,"font-weight":700,fill:css("--accent")}); g.textContent="my image";
+  }
+  // drag handle area
+  const hit=el("rect",{x:xo-26,y:top-30,width:52,height:HO+48,fill:"transparent",style:"cursor:grab"});
+  hit.addEventListener("pointerdown",startDrag);
+  readout(o);
+}
+
+function arrow(x,y0,y1,color,dashed,label,isObj){
+  el("line",{x1:x,y1:y0,x2:x,y2:y1+(y1<y0?10:-10),stroke:color,"stroke-width":isObj?6:5,"stroke-dasharray":dashed?"9 6":"none","stroke-linecap":"round"});
+  const dir=y1<y0?1:-1;
+  el("path",{d:`M${x} ${y1} L${x-10} ${y1+18*dir} L${x+10} ${y1+18*dir} Z`,fill:color,opacity:dashed?.8:1});
+  const near=!isObj && Math.abs(x-xo)<60;
+  const t=el("text",{x:near?x+14:x,y:y1-(dir>0?10:-24),"text-anchor":near?"start":"middle","font-size":15,"font-weight":700,fill:color}); t.textContent=label;
+}
+
+function seg(x1,y1,x2,y2,c,dash){el("line",{x1,y1,x2,y2,stroke:c,"stroke-width":2.2,"stroke-dasharray":dash?"7 6":"none",opacity:dash?.85:1})}
+function extend(x1,y1,x2,y2,toX){const s=(y2-y1)/(x2-x1);return [toX,y1+s*(toX-x1)]}
+
+function rays(o){
+  const r1=css("--ray1"),r2=css("--ray2"),r3=css("--ray3");
+  const yt=AY-HO;
+  if(lens==="convex"){
+    // ray1: parallel, then through F'
+    seg(xo,yt,CX,yt,r1); let e=extend(CX,yt,CX+F,AY,XMAX+30); seg(CX,yt,e[0],e[1],r1);
+    // ray3: centre
+    e=extend(xo,yt,CX,AY,XMAX+30); seg(xo,yt,e[0],e[1],r3);
+    if(!o.none && o.di<0){ // virtual: trace back
+      const xi=CX+o.di;
+      seg(CX,yt,xi,AY-HO*o.m,r1,true);
+      seg(xo,yt,xi,AY-HO*o.m,r3,true);
+    }
+  }else{
+    // ray1: parallel, then spreads out as if it came from F
+    seg(xo,yt,CX,yt,r1); let e=extend(CX-F,AY,CX,yt,XMAX+30); seg(CX,yt,e[0],e[1],r1); seg(CX-F,AY,CX,yt,r1,true);
+    // ray3: centre
+    e=extend(xo,yt,CX,AY,XMAX+30); seg(xo,yt,e[0],e[1],r3);
+    // trace back ray 2 (centre) to show where the two rays seem to meet
+  }
+}
+
+function readout(o){
+  const show = mode==="explore"||checked;
+  document.getElementById("objZone").textContent=zoneObj(o.d);
+  document.getElementById("imgZone").textContent= show? zoneImg(o) : "Hidden: tap the bench where you think it is";
+  const chips=document.getElementById("chips"); chips.innerHTML="";
+  const nums=document.getElementById("nums");
+  if(show && !o.none){
+    const real=o.di>0, m=Math.abs(o.m);
+    const size = Math.abs(m-1)<0.04?"Same size":(m>1?"Bigger (enlarged)":"Smaller (reduced)");
+    [[real?"Real":"Virtual",real?"real":"virtual"],[o.m<0?"Inverted":"Upright",""],[size,""]].forEach(([t,c])=>{const s=document.createElement("span");s.className="chip "+c;s.textContent=t;chips.appendChild(s)});
+    nums.textContent=`object distance ${(o.d/F).toFixed(2)} F  ·  image distance ${(Math.abs(o.di)/F).toFixed(2)} F ${o.di>0?"(other side)":"(same side)"}  ·  size × ${m.toFixed(2)}`;
+    if(show) markFound(zoneKey(o.d));
+  }else if(show && o.none){
+    const s=document.createElement("span");s.className="chip";s.textContent="No image";chips.appendChild(s);
+    nums.textContent="object distance 1.00 F  ·  the rays never meet";
+    markFound("atf");
+  }else nums.textContent="";
+}
+
+function markFound(k){ if(!found.has(k)){found.add(k); renderPos();} }
+function renderPos(){
+  const row=document.getElementById("posrow"); row.innerHTML="";
+  POS.forEach(p=>{const b=document.createElement("button");b.className="pos"+(found.has(p.k)?" done":"");
+    b.innerHTML=`<span class="tick" aria-hidden="true"></span>${p.t}`; b.setAttribute("aria-label",p.t+(found.has(p.k)?" (found)":""));
+    b.onclick=()=>{setLens(p.l);xo=p.x;resetPredict();draw()}; row.appendChild(b)});
+  document.getElementById("score").textContent=`${found.size} / 6`;
+}
+
+// dragging
+let dragging=false;
+function svgX(evt){const pt=sv.createSVGPoint();pt.x=evt.clientX;pt.y=evt.clientY;return pt.matrixTransform(sv.getScreenCTM().inverse()).x}
+function startDrag(e){dragging=true;sv.setPointerCapture(e.pointerId);e.preventDefault()}
+sv.addEventListener("pointermove",e=>{ if(!dragging)return;
+  let x=Math.max(XMIN,Math.min(CX-20,svgX(e)));
+  // gentle snap to F and 2F
+  [CX-F,CX-2*F].forEach(s=>{if(Math.abs(x-s)<7)x=s});
+  xo=x; if(mode==="predict"){resetPredict()} draw();});
+sv.addEventListener("pointerup",e=>{ if(dragging){dragging=false;return}
+  if(mode!=="predict"||checked)return;
+  const x=svgX(e); if(Math.abs(x-xo)<26)return;
+  guess=Math.max(XMIN-20,Math.min(XMAX+20,x)); document.getElementById("check").disabled=false; draw();});
+
+// predict check
+function resetPredict(){guess=null;checked=false;document.getElementById("check").disabled=true;document.getElementById("fb").textContent="";document.getElementById("fb").className="feedback"}
+document.getElementById("check").onclick=()=>{
+  const o=optics(); checked=true; const fb=document.getElementById("fb");
+  if(o.none){fb.textContent="There is no image when the object is at F. The rays come out parallel.";fb.className="feedback no"}
+  else{const xi=CX+o.di, err=Math.abs(guess-xi);
+    const far=Math.abs(o.di)>3*F;
+    if(err<=0.25*F || (far && Math.sign(guess-CX)===Math.sign(o.di))){fb.textContent="Well done! Your image is in the right place.";fb.className="feedback ok"}
+    else if(Math.sign(guess-CX)!==Math.sign(o.di)){fb.textContent="Check the side: this image forms on the "+(o.di>0?"other side of the lens.":"same side as the object.");fb.className="feedback no"}
+    else{fb.textContent="Right side, but not quite. Look at where the rays meet.";fb.className="feedback no"}}
+  draw();
+};
+document.getElementById("again").onclick=()=>{resetPredict();draw()};
+
+function setLens(l){lens=l;document.getElementById("lens-convex").setAttribute("aria-pressed",l==="convex");document.getElementById("lens-concave").setAttribute("aria-pressed",l==="concave")}
+function setMode(m){mode=m;document.getElementById("mode-explore").setAttribute("aria-pressed",m==="explore");document.getElementById("mode-predict").setAttribute("aria-pressed",m==="predict");
+  document.getElementById("predictBtns").hidden=m!=="predict"; document.getElementById("legend").style.visibility=m==="predict"?"hidden":"visible";
+  document.getElementById("hint").textContent=m==="predict"?"Place the object, then tap the bench where you think the image will be.":"Drag the purple object. Dashed lines are traced back: they show a virtual image.";
+  resetPredict();draw()}
+document.getElementById("lens-convex").onclick=()=>{setLens("convex");resetPredict();draw()};
+document.getElementById("lens-concave").onclick=()=>{setLens("concave");if(xo>CX-20)xo=CX-1.6*F;resetPredict();draw()};
+document.getElementById("mode-explore").onclick=()=>setMode("explore");
+document.getElementById("mode-predict").onclick=()=>setMode("predict");
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",draw);
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+renderPos(); setLens(lens); if(I.mode) setMode(I.mode); draw();
+})();
+</script>
+</body></html>
