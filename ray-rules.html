@@ -1,0 +1,193 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ray Rules Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+
+<style>
+/* Layout: bench on top, rule cards beneath; quiz mode swaps cards for A/B/C choices */
+:root{
+  --bg:#f3f6f8; --panel:#ffffff; --ink:#13293d; --muted:#5b6f80; --line:#cfd9e1; --accent:#0b7a8a;
+  --obj:#6a2fa0; --r1:#c92a2a; --r2:#1c7ed6; --r3:#2b8a3e; --glass:#bfe3f2; --glass-edge:#3d8fb8;
+  --ok:#2b8a3e; --warn:#c77700; --chip:#e7eef3; --ghost:#9aa9b5;
+  --display:"Sora",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1a24; --panel:#152532; --ink:#e6eef4; --muted:#9db0bf; --line:#2a3f50; --accent:#3cc2d3;
+  --obj:#c49cf0; --r1:#ff6b6b; --r2:#5aa9ff; --r3:#5fd17a; --glass:#244a5e; --glass-edge:#6cc0e6;
+  --ok:#5fd17a; --warn:#ffb347; --chip:#1d3242; --ghost:#5d7282; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1a24; --panel:#152532; --ink:#e6eef4; --muted:#9db0bf; --line:#2a3f50; --accent:#3cc2d3;
+  --obj:#c49cf0; --r1:#ff6b6b; --r2:#5aa9ff; --r3:#5fd17a; --glass:#244a5e; --glass-edge:#6cc0e6;
+  --ok:#5fd17a; --warn:#ffb347; --chip:#1d3242; --ghost:#5d7282; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+.embed .sub,.embed .hint,.embed .legend{display:none}
+.embed body,html.embed body{padding-block:6px 6px}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 32px}
+.wrap{max-width:1100px;margin:0 auto;display:grid;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-size:clamp(1.35rem,2.6vw,1.9rem);margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:transparent;color:var(--ink);font:600 .9rem var(--body);padding:8px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.controls{display:flex;flex-wrap:wrap;gap:8px}
+.bench{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px}
+svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}
+.hint{font-size:.85rem;color:var(--muted);padding:2px 8px 6px}
+.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:760px){.rules{grid-template-columns:1fr}}
+.rule{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;cursor:pointer;color:var(--ink);font:inherit;display:grid;gap:4px}
+.rule[aria-pressed="true"]{border-color:var(--c)}
+.rule b{font-family:var(--display);color:var(--c)}
+.rule small{color:var(--muted)}
+.quiz{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:10px}
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.choice{border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:8px 18px;font:700 1rem var(--display);cursor:pointer}
+.fb{font-weight:600;min-height:1.5em}.fb.ok{color:var(--ok)}.fb.no{color:var(--warn)}
+.btn{border:0;background:var(--accent);color:#fff;font:600 .95rem var(--body);padding:9px 16px;border-radius:10px;cursor:pointer;justify-self:start}
+.score{font-family:var(--display);color:var(--muted);font-size:.95rem}
+</style></head><body>
+<div class="wrap">
+  <header>
+    <div><h1>Ray rules</h1><p class="sub">Three easy rays tell us where every lens image is. Drag the object and switch each rule on.</p></div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Lens"><button id="lc" aria-pressed="true">Convex lens</button><button id="lv" aria-pressed="false">Concave lens</button></div>
+      <div class="seg" role="group" aria-label="Mode"><button id="mx" aria-pressed="true">Learn</button><button id="mq" aria-pressed="false">Quiz</button></div>
+    </div>
+  </header>
+  <div class="bench">
+    <svg id="sv" viewBox="0 0 1000 420" aria-label="Lens with an object and the three ray rules"></svg>
+    <div class="hint" id="hint">Drag the purple object. Tap a rule card to show or hide its ray.</div>
+  </div>
+  <div class="rules" id="rules"></div>
+  <div class="quiz" id="quiz" hidden>
+    <div class="score" id="score">Question 1 · Score 0</div>
+    <div id="qtext" style="font-weight:600"></div>
+    <div class="choices" id="choices"></div>
+    <div class="fb" id="fb"></div>
+    <button class="btn" id="next" hidden>Next ray</button>
+  </div>
+</div>
+<script>
+(function(){
+const NS="http://www.w3.org/2000/svg",sv=document.getElementById("sv");
+const CX=500,AY=220,F=150,HO=90,XMIN=20,XMAX=980;
+let lens="convex",mode="learn",xo=CX-2.4*F,on=[true,true,true],drag=false;
+const QS=new URLSearchParams(location.search);const I=Object.assign({},window.INIT||{});
+if(QS.get("lens"))I.lens=QS.get("lens"); if(QS.get("x"))I.x=parseFloat(QS.get("x")); if(QS.get("mode"))I.mode=QS.get("mode");
+if(QS.get("embed")){document.documentElement.classList.add("embed")} if(I.lens)lens=I.lens;
+let q=null,qn=1,score=0,answered=false;
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function el(n,a){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);sv.appendChild(e);return e}
+function txt(x,y,s,o){const t=el("text",Object.assign({x,y,"text-anchor":"middle","font-size":16,fill:css("--ink")},o||{}));t.textContent=s;return t}
+function line(x1,y1,x2,y2,c,dash,w){el("line",{x1,y1,x2,y2,stroke:c,"stroke-width":w||2.6,"stroke-dasharray":dash?"8 6":"none","stroke-linecap":"round"})}
+function through(x1,y1,x2,y2,X){return y1+(y2-y1)/(x2-x1)*(X-x1)}
+const RULES={convex:[
+  {t:"Rule 1",d:"Parallel to the axis → bends through F on the other side",c:"--r1"},
+  {t:"Rule 2",d:"Through F on the object side → comes out parallel",c:"--r2"},
+  {t:"Rule 3",d:"Through the centre of the lens → goes straight on",c:"--r3"}],
+ concave:[
+  {t:"Rule 1",d:"Parallel to the axis → spreads out as if it came from F (same side)",c:"--r1"},
+  {t:"Rule 2",d:"Aimed at F on the far side → comes out parallel",c:"--r2"},
+  {t:"Rule 3",d:"Through the centre of the lens → goes straight on",c:"--r3"}]};
+
+// returns list of segments for rule i: [x1,y1,x2,y2,dashed]
+function raySegs(i,L,x){
+  const yt=AY-HO,S=[];
+  if(L==="convex"){
+    if(i===0){S.push([x,yt,CX,yt]);S.push([CX,yt,XMAX,through(CX,yt,CX+F,AY,XMAX)])}
+    if(i===1){ if(Math.abs(x-(CX-F))<3) return S;
+      const yl=through(x,yt,CX-F,AY,CX); if(Math.abs(yl-AY)>200) return S;
+      S.push([x,yt,CX,yl]);S.push([CX,yl,XMAX,yl]); if(x>CX-F)S.push([CX-F,AY,x,yt,1])}
+    if(i===2){S.push([x,yt,XMAX,through(x,yt,CX,AY,XMAX)])}
+  }else{
+    if(i===0){S.push([x,yt,CX,yt]);S.push([CX,yt,XMAX,through(CX-F,AY,CX,yt,XMAX)]);S.push([CX-F,AY,CX,yt,1])}
+    if(i===1){const yl=through(x,yt,CX+F,AY,CX);S.push([x,yt,CX,yl]);S.push([CX,yl,XMAX,yl]);S.push([CX,yl,CX+F,AY,1])}
+    if(i===2){S.push([x,yt,XMAX,through(x,yt,CX,AY,XMAX)])}
+  }
+  return S;
+}
+function bench(L,x){
+  sv.innerHTML="";
+  const ink=css("--ink");
+  line(XMIN,AY,XMAX,AY,ink,false,1.6);
+  [[-2,"2F"],[-1,"F"],[1,"F"],[2,"2F"]].forEach(([k,t])=>{el("circle",{cx:CX+k*F,cy:AY,r:5,fill:ink});txt(CX+k*F,AY+28,t,{"font-weight":700,"font-family":"Sora,sans-serif"})});
+  if(L==="convex") el("ellipse",{cx:CX,cy:AY,rx:16,ry:165,fill:css("--glass"),stroke:css("--glass-edge"),"stroke-width":2});
+  else el("path",{d:`M${CX-20} ${AY-165} L${CX+20} ${AY-165} Q${CX+4} ${AY} ${CX+20} ${AY+165} L${CX-20} ${AY+165} Q${CX-4} ${AY} ${CX-20} ${AY-165} Z`,fill:css("--glass"),stroke:css("--glass-edge"),"stroke-width":2});
+  const yt=AY-HO, c=css("--obj");
+  line(x,AY,x,yt+14,c,false,6); el("path",{d:`M${x} ${yt} L${x-10} ${yt+18} L${x+10} ${yt+18} Z`,fill:c});
+  txt(x,yt-10,"object",{fill:c,"font-weight":700});
+}
+function draw(){
+  bench(lens,xo);
+  if(mode==="learn"){
+    RULES[lens].forEach((r,i)=>{ if(on[i]) raySegs(i,lens,xo).forEach(s=>line(s[0],s[1],s[2],s[3],css(r.c),!!s[4])) });
+    const hit=el("rect",{x:xo-26,y:AY-HO-30,width:52,height:HO+40,fill:"transparent",style:"cursor:grab"});
+    hit.addEventListener("pointerdown",e=>{drag=true;sv.setPointerCapture(e.pointerId)});
+  }else drawQuiz();
+}
+function svgX(e){const p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(sv.getScreenCTM().inverse()).x}
+sv.addEventListener("pointermove",e=>{if(!drag)return;let x=Math.max(XMIN+10,Math.min(CX-30,svgX(e)));[CX-F,CX-2*F].forEach(s=>{if(Math.abs(x-s)<7)x=s});xo=x;draw()});
+sv.addEventListener("pointerup",()=>drag=false);
+
+function renderRules(){
+  const box=document.getElementById("rules");box.innerHTML="";
+  RULES[lens].forEach((r,i)=>{const b=document.createElement("button");b.className="rule";b.style.setProperty("--c",css(r.c));
+    b.setAttribute("aria-pressed",on[i]);b.innerHTML=`<b>${r.t}</b><span>${r.d}</span><small>${on[i]?"Shown":"Hidden"} · tap to ${on[i]?"hide":"show"}</small>`;
+    b.onclick=()=>{on[i]=!on[i];renderRules();draw()};box.appendChild(b)});
+}
+
+// QUIZ: show incoming part; offer 3 outgoing options A/B/C, one correct
+function newQ(){
+  const L=Math.random()<.6?"convex":"concave";
+  const i=Math.floor(Math.random()*3);
+  const xs=[CX-2.5*F,CX-1.6*F,CX-2*F];
+  q={L,i,x:xs[Math.floor(Math.random()*xs.length)]};
+  // build options: correct outgoing + two wrong (other rules' outgoing directions applied to same incoming)
+  const yt=AY-HO, inc=raySegs(i,L,q.x)[0];
+  const ex=inc[2], ey=inc[3];                 // exit point on lens
+  const correct=raySegs(i,L,q.x)[1];
+  const cands=[[ex,ey,XMAX,ey],[ex,ey,XMAX,through(ex,ey,CX+F,AY,XMAX)],[ex,ey,XMAX,through(inc[0],inc[1],ex,ey,XMAX)],
+               [ex,ey,XMAX,through(CX-F,AY,ex,ey,XMAX)],[ex,ey,XMAX,AY+(AY-ey)*0.4]];
+  const key=s=>Math.round(s[3]);
+  let opts=[correct];
+  for(const c of cands){ if(opts.length>=3)break; if(opts.every(o=>Math.abs(key(o)-key(c))>40)) opts.push(c) }
+  opts=opts.sort(()=>Math.random()-.5);
+  q.opts=opts;q.ans=opts.indexOf(correct);q.inc=inc;answered=false;
+  setLensUI(L);
+  document.getElementById("qtext").textContent=`${L==="convex"?"Convex":"Concave"} lens: ${["This ray comes in parallel to the axis.",L==="convex"?"This ray passes through F before the lens.":"This ray is aimed at F on the far side.","This ray goes to the centre of the lens."][i]} Which way does it go out: A, B or C?`;
+  const ch=document.getElementById("choices");ch.innerHTML="";
+  ["A","B","C"].slice(0,opts.length).forEach((t,k)=>{const b=document.createElement("button");b.className="choice";b.textContent=t;b.onclick=()=>answer(k);ch.appendChild(b)});
+  document.getElementById("fb").textContent="";document.getElementById("fb").className="fb";document.getElementById("next").hidden=true;
+  document.getElementById("score").textContent=`Question ${qn} · Score ${score}`;
+  draw();
+}
+function drawQuiz(){
+  bench(q.L,q.x);
+  const c=css(RULES[q.L][q.i].c), g=css("--ghost");
+  line(q.inc[0],q.inc[1],q.inc[2],q.inc[3],c);
+  q.opts.forEach((o,k)=>{const show=answered&&k===q.ans;line(o[0],o[1],o[2],o[3],show?c:g,!show,show?3:2.2);
+    const ty=Math.max(30,Math.min(400,o[3]));txt(XMAX-14,ty+(o[3]>AY?-8:22),"ABC"[k],{"font-weight":700,"font-size":20,fill:show?c:css("--muted"),"font-family":"Sora,sans-serif"})});
+}
+function answer(k){ if(answered)return; answered=true; const fb=document.getElementById("fb");
+  if(k===q.ans){score++;fb.textContent="Correct! "+RULES[q.L][q.i].d+".";fb.className="fb ok"}
+  else{fb.textContent="Not this one. "+RULES[q.L][q.i].t+": "+RULES[q.L][q.i].d+".";fb.className="fb no"}
+  document.getElementById("score").textContent=`Question ${qn} · Score ${score}`;document.getElementById("next").hidden=false;draw()}
+document.getElementById("next").onclick=()=>{qn++;newQ()};
+
+function setLensUI(L){lens=L;document.getElementById("lc").setAttribute("aria-pressed",L==="convex");document.getElementById("lv").setAttribute("aria-pressed",L==="concave");renderRules()}
+document.getElementById("lc").onclick=()=>{setLensUI("convex");mode==="quiz"?newQ():draw()};
+document.getElementById("lv").onclick=()=>{setLensUI("concave");mode==="quiz"?newQ():draw()};
+function setMode(m){mode=m;document.getElementById("mx").setAttribute("aria-pressed",m==="learn");document.getElementById("mq").setAttribute("aria-pressed",m==="quiz");
+  document.getElementById("rules").hidden=m!=="learn";document.getElementById("quiz").hidden=m!=="quiz";
+  document.getElementById("hint").textContent=m==="learn"?"Drag the purple object. Tap a rule card to show or hide its ray.":"Look at the coloured ray going in. Pick the path it takes after the lens.";
+  if(m==="quiz"){qn=1;score=0;newQ()}else draw()}
+document.getElementById("mx").onclick=()=>setMode("learn");
+document.getElementById("mq").onclick=()=>setMode("quiz");
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{renderRules();draw()});
+renderRules();if(I.mode==="quiz")setMode("quiz");else draw();
+})();
+</script>
+</body></html>
