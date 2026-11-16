@@ -54,7 +54,7 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}
     <div><h1>Ray rules</h1><p class="sub">Three easy rays tell us where every lens image is. Tap a rule to see its ray, then drag the object.</p></div>
     <div class="controls">
       <div class="seg" role="group" aria-label="Lens"><button id="lc" aria-pressed="true">Convex lens</button><button id="lv" aria-pressed="false">Concave lens</button></div>
-      <div class="seg" role="group" aria-label="Mode"><button id="mx" aria-pressed="true">Learn</button><button id="mq" aria-pressed="false">Quiz</button></div>
+<button id="mx" hidden></button><button id="mq" hidden></button>
     </div>
   </header>
   <div class="bench">
@@ -131,6 +131,7 @@ function draw(){
 function svgX(e){const p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(sv.getScreenCTM().inverse()).x}
 sv.addEventListener("pointermove",e=>{if(!drag)return;let x=Math.max(XMIN+10,Math.min(CX-30,svgX(e)));[CX-F,CX-2*F].forEach(s=>{if(Math.abs(x-s)<7)x=s});xo=x;draw()});
 sv.addEventListener("pointerup",()=>drag=false);
+sv.addEventListener("pointerdown",e=>{if(drag||mode!=="learn")return;let x=svgX(e);if(x>CX-30)return;x=Math.max(XMIN+10,x);[CX-F,CX-2*F].forEach(s=>{if(Math.abs(x-s)<7)x=s});xo=x;drag=true;sv.setPointerCapture(e.pointerId);draw()});
 
 function renderRules(){
   const box=document.getElementById("rules");box.innerHTML="";
@@ -187,7 +188,7 @@ function setMode(m){mode=m;document.getElementById("mx").setAttribute("aria-pres
 document.getElementById("mx").onclick=()=>setMode("learn");
 document.getElementById("mq").onclick=()=>setMode("quiz");
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{renderRules();draw()});
-renderRules();if(I.mode==="quiz")setMode("quiz");else draw();
+renderRules();draw();
 })();
 </script>
 </body></html>
