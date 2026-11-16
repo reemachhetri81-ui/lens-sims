@@ -67,17 +67,14 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}
   <header>
     <div>
       <h1>Where is the image?</h1>
-      <p class="sub">Drag the object along the bench. Find where the lens makes its image.</p>
+      <p class="sub">Click anywhere left of the lens, or drag the object. The two rays show where the image is.</p>
     </div>
     <div class="controls">
       <div class="seg" role="group" aria-label="Lens">
         <button id="lens-convex" aria-pressed="true">Convex lens</button>
         <button id="lens-concave" aria-pressed="false">Concave lens</button>
       </div>
-      <div class="seg" role="group" aria-label="Mode">
-        <button id="mode-explore" aria-pressed="true">Explore</button>
-        <button id="mode-predict" aria-pressed="false">Predict</button>
-      </div>
+<button id="mode-explore" hidden></button><button id="mode-predict" hidden></button>
     </div>
   </header>
 
@@ -87,7 +84,7 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}
       <span><i style="background:var(--ray1)"></i>Ray 1: parallel, then through F</span>
       <span><i style="background:var(--ray3)"></i>Ray 2: through the centre, straight on</span>
     </div>
-    <div class="hint" id="hint">Drag the purple object. Dashed lines are traced back: they show a virtual image.</div>
+    <div class="hint" id="hint">Click or drag to move the object. Dashed lines are traced back: they show a virtual image.</div>
   </div>
 
   <div class="grid">
@@ -106,18 +103,7 @@ svg{display:block;width:100%;height:auto;touch-action:none;user-select:none}
       </div>
     </section>
 
-    <section class="card mission">
-      <h2>Mission: find all 6 images <span class="score" id="score">0 / 6</span></h2>
-      <p style="margin:0 0 6px;color:var(--muted)">Jump the object to each position (or drag it there). A position turns green when you have found its image. Write each answer in your foldable.</p>
-      <div class="posrow" id="posrow"></div>
-      <h2 style="margin-top:14px">Predict mode</h2>
-      <ol class="steps">
-        <li>Choose <b>Predict</b>. The rays and the image are hidden.</li>
-        <li>Put the object where you want it.</li>
-        <li>Tap the bench where you think the image will be.</li>
-        <li>Press <b>Check my image</b>.</li>
-      </ol>
-    </section>
+<div hidden><span id="score"></span><div id="posrow"></div></div>
   </div>
 </div>
 
@@ -287,6 +273,8 @@ sv.addEventListener("pointermove",e=>{ if(!dragging)return;
   // gentle snap to F and 2F
   [CX-F,CX-2*F].forEach(s=>{if(Math.abs(x-s)<7)x=s});
   xo=x; if(mode==="predict"){resetPredict()} draw();});
+sv.addEventListener("pointerdown",e=>{ if(dragging)return; let x=svgX(e); if(x>CX-20)return;
+  x=Math.max(XMIN,x); [CX-F,CX-2*F].forEach(s=>{if(Math.abs(x-s)<7)x=s}); xo=x; dragging=true; sv.setPointerCapture(e.pointerId); e.preventDefault(); draw();});
 sv.addEventListener("pointerup",e=>{ if(dragging){dragging=false;return}
   if(mode!=="predict"||checked)return;
   const x=svgX(e); if(Math.abs(x-xo)<26)return;
@@ -309,7 +297,7 @@ document.getElementById("again").onclick=()=>{resetPredict();draw()};
 function setLens(l){lens=l;document.getElementById("lens-convex").setAttribute("aria-pressed",l==="convex");document.getElementById("lens-concave").setAttribute("aria-pressed",l==="concave")}
 function setMode(m){mode=m;document.getElementById("mode-explore").setAttribute("aria-pressed",m==="explore");document.getElementById("mode-predict").setAttribute("aria-pressed",m==="predict");
   document.getElementById("predictBtns").hidden=m!=="predict"; document.getElementById("legend").style.visibility=m==="predict"?"hidden":"visible";
-  document.getElementById("hint").textContent=m==="predict"?"Place the object, then tap the bench where you think the image will be.":"Drag the purple object. Dashed lines are traced back: they show a virtual image.";
+  document.getElementById("hint").textContent=m==="predict"?"Place the object, then tap the bench where you think the image will be.":"Click or drag to move the object. Dashed lines are traced back: they show a virtual image.";
   resetPredict();draw()}
 document.getElementById("lens-convex").onclick=()=>{setLens("convex");resetPredict();draw()};
 document.getElementById("lens-concave").onclick=()=>{setLens("concave");if(xo>CX-20)xo=CX-1.6*F;resetPredict();draw()};
@@ -317,7 +305,7 @@ document.getElementById("mode-explore").onclick=()=>setMode("explore");
 document.getElementById("mode-predict").onclick=()=>setMode("predict");
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",draw);
 new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
-renderPos(); setLens(lens); if(I.mode) setMode(I.mode); draw();
+renderPos(); setLens(lens); draw();
 })();
 </script>
 </body></html>
